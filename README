@@ -4,3 +4,8 @@ HTTP to Email
   - Provide a url like httptoemail.minhajuddin.com/:sha512hash which will then send an email to
     the registered email id when a post is made
 
+  - To start run `PGURL='postgres://username:password@localhost:5432/dbname' ./httptoemail`
+
+  - To create the tables run:
+      
+      CREATE TABLE emails(hash VARCHAR(100) PRIMARY KEY, email VARCHAR(100))

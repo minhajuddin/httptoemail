@@ -1,18 +1,34 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	"github.com/bmizerany/pq"
 	"log"
 	"net/http"
 	"net/smtp"
 	"net/url"
+	"os"
 )
 
-var STD_RESPONSE = []byte("DONE")
+var (
+	STD_RESPONSE = []byte("DONE")
+	DB           *sql.DB
+)
 
 func main() {
+	connectToDB()
 	http.HandleFunc("/", requestHandler)
-	http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServe(":8080", nil)
+	handleError(err, "HTTP SERVER")
+}
+
+func connectToDB() {
+	var err error
+	dataSource, err := pq.ParseURL(os.Getenv("PGURL"))
+	handleError(err, "URL PARSE")
+	DB, err = sql.Open("postgres", dataSource)
+	handleError(err, "DB CONNECT")
 }
 
 func requestHandler(w http.ResponseWriter, r *http.Request) {
@@ -26,8 +42,21 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 
 func getReceiver(u *url.URL) string {
 	//TODO: make sure that it is verified
-	log.Println(u.Path)
-	return "minhajuddin@mailinator.com"
+
+	out(u.Path)
+
+	var s sql.NullString
+	hash := "MINK"
+	err := DB.QueryRow("SELECT email FROM emails WHERE hash = $1", hash).Scan(&s)
+	if err != nil {
+		log.Println("SCAN ERR", err)
+		return ""
+	}
+	if !s.Valid {
+		out("Email for not found for : " + hash)
+		return ""
+	}
+	return s.String
 }
 
 func sendEmail(to, subject, body string) {
@@ -41,4 +70,13 @@ Subject: %s
 		"HTTP to Email <bot@cosmicvent.com>",
 		[]string{to},
 		[]byte(msg))
+}
+
+func handleError(err error, msg string) {
+	if err != nil {
+		log.Fatalln(msg, err)
+	}
+}
+func out(args ...interface{}) {
+	log.Println(args...)
 }
