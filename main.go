@@ -47,7 +47,7 @@ func getReceiver(u *url.URL) string {
 
 	var s sql.NullString
 	hash := "MINK"
-	err := DB.QueryRow("SELECT email FROM emails WHERE hash = $1", hash).Scan(&s)
+	err := DB.QueryRow("SELECT email FROM emails WHERE id = $1", hash).Scan(&s)
 	if err != nil {
 		log.Println("SCAN ERR", err)
 		return ""
