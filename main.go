@@ -9,11 +9,14 @@ import (
 	"net/smtp"
 	"net/url"
 	"os"
+	"regexp"
+	"strings"
 )
 
 var (
 	STD_RESPONSE = []byte("DONE")
 	DB           *sql.DB
+	POST_RX      = regexp.MustCompile("^[0-9a-f]+$")
 )
 
 func main() {
@@ -43,11 +46,14 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 func getReceiver(u *url.URL) string {
 	//TODO: make sure that it is verified
 
-	out(u.Path)
+	hash := strings.Trim(strings.ToLower(u.Path), "/ ")
+
+	if !POST_RX.MatchString(hash) {
+		return ""
+	}
 
 	var s sql.NullString
-	hash := "MINK"
-	err := DB.QueryRow("SELECT email FROM emails WHERE id = $1", hash).Scan(&s)
+	err := DB.QueryRow("SELECT email FROM users WHERE id = $1", hash).Scan(&s)
 	if err != nil {
 		log.Println("SCAN ERR", err)
 		return ""
@@ -60,14 +66,19 @@ func getReceiver(u *url.URL) string {
 }
 
 func sendEmail(to, subject, body string) {
-	msg := fmt.Sprintf(`From: HTTP to Email <bot@cosmicvent.com>
+	if len(to) == 0 || !strings.Contains(to, "@") {
+		out("ABORTING SEND to :", to)
+		return
+	}
+	out("SENDING EMAIL to :", to)
+	msg := fmt.Sprintf(`From: HTTP to Email <bot@minhajuddin.com>
 To: %s
 Subject: %s
 
 %s`, to, subject, body)
 	smtp.SendMail("localhost:25",
 		nil,
-		"HTTP to Email <bot@cosmicvent.com>",
+		"HTTP to Email <bot@minhajuddin.com>",
 		[]string{to},
 		[]byte(msg))
 }
