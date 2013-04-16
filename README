@@ -8,4 +8,4 @@ HTTP to Email
 
   - To create the tables run:
       
-      CREATE TABLE users(id VARCHAR(128) PRIMARY KEY, email VARCHAR(100))
+      CREATE TABLE users(id VARCHAR(128) PRIMARY KEY, email VARCHAR(100), active BOOLEAN)
